@@ -16,7 +16,7 @@ public class BookController {
 
     @GetMapping
     public ResponseEntity getAllBooks() {
-        return new ResponseEntity(Arrays.asList(new Book(1, "Life of cat", "Vivaan Behera")), HttpStatus.OK);
+        return new ResponseEntity(Arrays.asList(new Book(1, "Life of cat", "Vivaan Behera"),new Book(2, "Life of dog", "Siddhartha Behera")), HttpStatus.OK);
     }
 
 }
