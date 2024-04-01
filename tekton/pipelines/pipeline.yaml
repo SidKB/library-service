@@ -13,6 +13,10 @@ spec:
       description: revision to be used
       name: git-revision
       type: string
+    - name: source-dir
+      default: "library"
+      type: string
+      description: The source code relative to the repository
     - name: context-dir
       default: "app-artifacts"
       type: string
@@ -67,7 +71,7 @@ spec:
       params:
         - name: SCRIPT
           value: |
-              DIR= ./app-artifacts/
+              DIR= ./$(params.context-dir)/$(params.source-dir)/
 
               ls -l $DIR
     - name: maven-package
@@ -108,7 +112,7 @@ spec:
         - name: PROXY_PROTOCOL
           value: http
         - name: CONTEXT_DIR
-          value: $(params.context-dir)
+          value: $(params.context-dir)/$(params.source-dir)
     - name: build-and-tag-image
       runAfter:
         - maven-package
@@ -123,7 +127,7 @@ spec:
           value: |
 
             #The build step has built the jar in /target folder /workspace/source/app-artifacts/target/library-0.0.1.jar
-            DIR=./app-artifacts/target
+            DIR=./$(params.context-dir)/$(params.source-dir)/target
 
             ls -l $DIR
 
