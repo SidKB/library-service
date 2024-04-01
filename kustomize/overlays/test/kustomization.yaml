@@ -1,0 +1,15 @@
+
+namePrefix: dev-
+# note: We are on dev now
+commonAnnotations:
+  stage: development
+
+resources:
+  - ../../base
+labels:
+  - includeSelectors: true
+    pairs:
+      variant: development
+patches:
+  - path: deployment.yaml
+  - path: route.yaml

@@ -1,0 +1,167 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: library-s2i-pipeline
+  namespace: sid-behera88-dev
+spec:
+  params:
+    - default: 'https://github.com/SidKB/library-service.git'
+      description: Source to the GIT
+      name: git-url
+      type: string
+    - default: main
+      description: revision to be used
+      name: git-revision
+      type: string
+    - name: context-dir
+      default: "app-artifacts"
+      type: string
+      description: Where to checkout the source relative to the workspace
+    - name: APP
+      type: string
+      default: "library"
+    - name: POM_VERSION
+      type: string
+      default: "0.0.1"
+  workspaces:
+    - name: shared-workspace
+      optional: false
+    - name: maven-settings
+      optional: false
+  tasks:
+    - name: git-clone
+      taskRef:
+        kind: ClusterTask
+        name: git-clone
+      workspaces:
+        - name: output
+          workspace: shared-workspace
+      params:
+        - name: url
+          value: $(params.git-url)
+        - name: revision
+          value: $(params.git-revision)
+        - name: refspec
+          value: ''
+        - name: submodules
+          value: 'true'
+        - name: depth
+          value: '1'
+        - name: crtFileName
+          value: ca-bundle.crt
+        - name: subdirectory
+          value: $(params.context-dir)
+        - name: deleteExisting
+          value: 'true'
+        - name: verbose
+          value: 'true'
+    - name: view-clone-content
+      runAfter:
+        - git-clone
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      workspaces:
+        - name: manifest-dir
+          workspace: shared-workspace
+      params:
+        - name: SCRIPT
+          value: |
+              DIR= ./app-artifacts/
+
+              ls -l $DIR
+    - name: maven-package
+      runAfter:
+        - view-clone-content
+      taskRef:
+        kind: ClusterTask
+        name: maven
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+        - name: maven-settings
+          workspace: maven-settings
+      params:
+        - name: MAVEN_IMAGE
+          value: >-
+            registry.redhat.io/ubi8/openjdk-17@sha256:af305e087061cbaa4107ce0b304a1ef987f6b54bae3f75bfd529cfd084cba9b5
+        - name: GOALS
+          value:
+            - clean
+            - package
+        - name: MAVEN_MIRROR_URL
+          value: ''
+        - name: SERVER_USER
+          value: ''
+        - name: SERVER_PASSWORD
+          value: ''
+        - name: PROXY_USER
+          value: ''
+        - name: PROXY_PASSWORD
+          value: ''
+        - name: PROXY_PORT
+          value: ''
+        - name: PROXY_HOST
+          value: ''
+        - name: PROXY_NON_PROXY_HOSTS
+          value: ''
+        - name: PROXY_PROTOCOL
+          value: http
+        - name: CONTEXT_DIR
+          value: $(params.context-dir)
+    - name: build-and-tag-image
+      runAfter:
+        - maven-package
+      taskRef:
+        kind: ClusterTask
+        name: openshift-client
+      workspaces:
+        - name: manifest-dir
+          workspace: shared-workspace
+      params:
+        - name: SCRIPT
+          value: |
+
+            #The build step has built the jar in /target folder /workspace/source/app-artifacts/target/library-0.0.1.jar
+            DIR=./app-artifacts/target
+
+            ls -l $DIR
+
+            #JAR file path
+            JAR_FILE=${DIR}/library-$(params.POM_VERSION).jar
+            echo $JAR_FILE
+
+            #delete any previous builds already
+            oc delete all -l build=$(params.APP)
+
+            #new build
+            oc new-build --name=$(params.APP) registry.access.redhat.com/ubi8/openjdk-17:1.19-1 --binary=true -l build=$(params.APP)
+
+            #Start-build passing a new binary file. This triggers a build and results a new istag sid-library:latest
+            oc start-build $(params.APP) --from-file=$JAR_FILE --follow
+
+            oc tag $(params.APP):latest $(params.APP):$(params.POM_VERSION)
+
+    - name: copy-to-quay
+      runAfter:
+        - build-and-tag-image
+      workspaces:
+        - name: images-url
+          workspace: shared-workspace
+      taskRef:
+        kind: Task
+        name: skopeo-copy-verify
+      params:
+        - name: srcImageURL
+          value: docker://image-registry.openshift-image-registry.svc:5000/sid-behera88-dev/$(params.APP):$(params.POM_VERSION)
+        - name: destImageURL
+          value: docker://quay.io/sid_behera88/library
+        - name: image-username
+          value: 'sid_behera88+rh_person_service_bot'
+        - name: image-password
+          value: 'K772DL5N1VKAAM9CC20DOJQR4Z8C3E8AGO8XDA0HDU7WL4I2RQL3LJNI4FT9F0I1'
+        - name: srcTLSverify
+          value: "false"
+        - name: destTLSverify
+          value: "false"
+

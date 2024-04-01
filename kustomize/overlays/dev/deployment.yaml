@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: personal-service
+  namespace: sid-behera88-dev
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+      - image: image-registry.openshift-image-registry.svc:5000/sid-behera88-dev/person-service:latest
+        imagePullPolicy: Always
+        name: person-service
+        ports:
+          - containerPort: 8080
+            protocol: TCP
+        env:
+          - name: APP_GREETING
+            value: 'Hey, this is the DEVELOPMENT environment of the App'
+  
