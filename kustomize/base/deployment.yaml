@@ -23,17 +23,48 @@ spec:
         deployment: library-service
     spec:
       containers:
-      - image: image-registry.openshift-image-registry.svc:5000/sid-behera88-dev/library:latest
-        imagePullPolicy: IfNotPresent
-        name: library-service
-        ports:
-        - containerPort: 8778
-          protocol: TCP
-        - containerPort: 8080
-          protocol: TCP
-        - containerPort: 8443
-          protocol: TCP
-        resources: {}
+        - resources:
+            limits:
+              cpu: '1'
+              memory: 700Mi
+            requests:
+              cpu: 200m
+              memory: 300Mi
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 30
+            timeoutSeconds: 1
+            periodSeconds: 15
+            successThreshold: 1
+            failureThreshold: 3
+          terminationMessagePath: /dev/termination-log
+          name: library-service
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 60
+            timeoutSeconds: 1
+            periodSeconds: 30
+            successThreshold: 1
+            failureThreshold: 3
+          env:
+            - name: APP_GREETING
+              value: 'Hey Siddhartha, from base'
+          ports:
+            - containerPort: 8778
+              protocol: TCP
+            - containerPort: 8080
+              protocol: TCP
+            - containerPort: 8443
+              protocol: TCP
+          imagePullPolicy: IfNotPresent
+          terminationMessagePolicy: File
+          image: 'image-registry.openshift-image-registry.svc:5000/sid-behera88-dev/library:latest'
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       schedulerName: default-scheduler
