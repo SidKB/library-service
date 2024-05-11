@@ -8,7 +8,7 @@ spec:
     targetPort: 8080-tcp
   to:
     kind: Service
-    name: dev-library-service
+    name: library-service
     weight: 100
   wildcardPolicy: None
 
