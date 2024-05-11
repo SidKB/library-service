@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+labels:
+  - includeSelectors: true
+    pairs:
+      org: sid.org
+
+resources:
+  - ./infra/maven-artifact-cache-pvc.yaml
+  - ./infra/maven-settings-cm.yaml
+  - ./tasks/skopeo-copy-verify.yaml
+  - ./pipelines/serviceAccount.yaml
+  - ./pipelines/pipeline.yaml
+
+

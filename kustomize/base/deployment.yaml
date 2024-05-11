@@ -55,6 +55,10 @@ spec:
           env:
             - name: APP_GREETING
               value: 'Hey Siddhartha, from base'
+            - name: app.minScale
+              value: '10000'
+            - name: app.maxScale
+              value: '50000'
           ports:
             - containerPort: 8778
               protocol: TCP
