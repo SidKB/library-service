@@ -64,4 +64,4 @@ jobs:
       - name: Build and analyze
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: mvn verify --file library/pom.xmlmvn sonar:sonar -Dsonar.projectKey=SidKB_library-service -Dsonar.organization=siddhartha
+        run: mvn verify --file library/pom.xml sonar:sonar -Dsonar.projectKey=SidKB_library-service -Dsonar.organization=siddhartha
